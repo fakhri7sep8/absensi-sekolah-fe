@@ -4,7 +4,7 @@ import axios from 'axios';
 import { getCookie, removeCookie } from './cookies';
 import { shouldIgnoreUnauthorized } from './auth';
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 'https://absensi-sekolah-be.vercel.app';
 
 const api = axios.create({
   baseURL,
