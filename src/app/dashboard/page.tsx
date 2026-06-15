@@ -19,20 +19,12 @@ type StudentRow = {
   status: AbsensiPayload['status'] | '';
 };
 
-const defaultKelasOptions: KelasItem[] = Array.from({ length: 6 }, (_, level) =>
-  ['A', 'B', 'C', 'D'].map((suffix, index) => ({
-    id: level * 4 + index + 1,
-    nama_kelas: `${level + 1} ${suffix}`,
-    tingkat: level + 1,
-  })),
-).flat();
-
 export default function DashboardPage() {
   const router = useRouter();
   const { isLoggedIn } = useAuth();
   const { fetchAbsensi, submitAbsensiBatch } = useAbsensi();
   const { fetchSiswa } = useSiswa();
-  const { fetchKelas } = useKelas();
+  const { fetchKelas, initDefaultKelas } = useKelas();
   const [kelasId, setKelasId] = useState('');
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().slice(0, 10));
   const [kelasOptions, setKelasOptions] = useState<KelasItem[]>([]);
@@ -57,13 +49,19 @@ export default function DashboardPage() {
   }, [kelasId, kelasOptions]);
 
   const loadKelas = async () => {
-    const data = await fetchKelas();
-    const options = data?.length ? data : defaultKelasOptions;
-    setKelasOptions(options);
-    if (options.length > 0) {
-      setKelasId(String(options[0].id));
+    // Selalu panggil initDefaultKelas untuk membersihkan duplikat & seed jika perlu
+    let data = await initDefaultKelas().catch(async () => {
+      // Fallback: jika init gagal, pakai fetch biasa
+      return await fetchKelas();
+    });
+    if (!data?.length) {
+      data = await fetchKelas();
     }
-    return options;
+    setKelasOptions(data);
+    if (data.length > 0) {
+      setKelasId(String(data[0].id));
+    }
+    return data;
   };
 
   const loadStudents = async (selectedKelasId: string, currentTanggal: string) => {
@@ -342,7 +340,7 @@ export default function DashboardPage() {
                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 font-medium outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                   >
                     {!kelasOptions.length && <option value="">Memuat opsi kelas...</option>}
-                    {(kelasOptions.length ? kelasOptions : defaultKelasOptions).map((kelas) => (
+                    {kelasOptions.map((kelas: KelasItem) => (
                       <option key={kelas.id} value={kelas.id}>
                         Kelas {kelas.nama_kelas}
                       </option>

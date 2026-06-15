@@ -14,10 +14,15 @@ export function useKelas() {
     return response.data as KelasItem[];
   };
 
+  const initDefaultKelas = async () => {
+    const response = await api.get('/kelas/init');
+    return response.data as KelasItem[];
+  };
+
   const createKelas = async (payload: { nama_kelas: string; tingkat: number }) => {
     const response = await api.post('/kelas', payload);
     return response.data as KelasItem;
   };
 
-  return { fetchKelas, createKelas };
+  return { fetchKelas, initDefaultKelas, createKelas };
 }

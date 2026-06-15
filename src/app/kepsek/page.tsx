@@ -52,7 +52,7 @@ export default function KepsekPage() {
   const router = useRouter();
   const { isLoggedIn } = useAuth();
   const { fetchLaporan, exportPDF } = useLaporan();
-  const { fetchKelas } = useKelas();
+  const { fetchKelas, initDefaultKelas } = useKelas();
   const [bulan, setBulan] = useState(String(new Date().getMonth() + 1));
   const [tahun, setTahun] = useState(String(new Date().getFullYear()));
   const [kelasId, setKelasId] = useState('');
@@ -85,12 +85,15 @@ export default function KepsekPage() {
     let active = true;
     const loadKelas = async () => {
       try {
-        const data = await fetchKelas();
+        // Selalu panggil initDefaultKelas untuk membersihkan duplikat & seed jika perlu
+        let data = await initDefaultKelas().catch(async () => {
+          if (!active) return [];
+          return await fetchKelas();
+        });
         if (!active) return;
-        const options = data?.length ? data : [];
-        setKelasOptions(options);
-        if (options.length > 0) {
-          setKelasId((current) => current || String(options[0].id));
+        setKelasOptions(data);
+        if (data.length > 0) {
+          setKelasId((current) => current || String(data[0].id));
         }
       } catch (error) {
         if (active) {

@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { AxiosError } from "axios";
 import * as Yup from "yup";
-import api from "@/lib/axios";
 import Navbar from "@/components/Navbar";
 import GuruSidebar from "@/components/GuruSidebar";
 import { useWithAuth } from "@/hooks/withAuth";
 import { useSiswa, type SiswaItem } from "@/hooks/useSiswa";
+import { useKelas } from "@/hooks/useKelas";
 import { shouldIgnoreUnauthorized } from "@/lib/auth";
 
 type KelasOption = {
@@ -58,6 +58,7 @@ export default function SiswaPage() {
   useWithAuth(["guru"]);
 
   const { fetchSiswa, createSiswa, updateSiswa, deleteSiswa } = useSiswa();
+  const { fetchKelas, initDefaultKelas } = useKelas();
   const [items, setItems] = useState<SiswaRow[]>([]);
   const [kelasOptions, setKelasOptions] = useState<KelasOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,15 +79,18 @@ export default function SiswaPage() {
     let active = true;
     const loadData = async () => {
       try {
-        const [siswaRes, kelasRes] = await Promise.all([
+        const [siswaRes] = await Promise.all([
           fetchSiswa(),
-          api.get("/kelas"),
         ]);
         if (!active) return;
         setItems(siswaRes.map(mapSiswa));
-        setKelasOptions(kelasRes.data);
-        if (kelasRes.data.length > 0) {
-          setKelasId((current) => current || String(kelasRes.data[0].id));
+        // Selalu panggil initDefaultKelas untuk membersihkan duplikat & seed jika perlu
+        const kelasList = await initDefaultKelas().catch(async () => {
+          return await fetchKelas();
+        });
+        setKelasOptions(kelasList);
+        if (kelasList.length > 0) {
+          setKelasId((current) => current || String(kelasList[0].id));
         }
       } catch (error) {
         if (!active) return;
