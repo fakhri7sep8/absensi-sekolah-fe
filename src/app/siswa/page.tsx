@@ -79,18 +79,31 @@ export default function SiswaPage() {
     let active = true;
     const loadData = async () => {
       try {
-        const [siswaRes] = await Promise.all([
-          fetchSiswa(),
-        ]);
+        // Fetch siswa tanpa filter kelas (semua)
+        const siswaRes = await fetchSiswa();
         if (!active) return;
         setItems(siswaRes.map(mapSiswa));
-        // Selalu panggil initDefaultKelas untuk membersihkan duplikat & seed jika perlu
-        const kelasList = await initDefaultKelas().catch(async () => {
-          return await fetchKelas();
+
+        // Load kelas dengan guard yang proper
+        let kelasList: KelasOption[] = [];
+        try {
+          kelasList = await initDefaultKelas();
+        } catch {
+          // silent
+        }
+        if (!Array.isArray(kelasList) || kelasList.length === 0) {
+          kelasList = await fetchKelas();
+        }
+
+        const seen = new Set<string>();
+        const uniqueKelas = kelasList.filter((kelas) => {
+          const key = kelas.nama_kelas.trim().toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
         });
-        const uniqueKelas = Array.from(
-          new Map(kelasList.map((kelas) => [kelas.nama_kelas.trim().toLowerCase(), kelas])).values(),
-        );
+
+        if (!active) return;
         setKelasOptions(uniqueKelas);
         if (uniqueKelas.length > 0) {
           setKelasId((current) => current || String(uniqueKelas[0].id));
@@ -108,7 +121,7 @@ export default function SiswaPage() {
     return () => {
       active = false;
     };
-  }, [fetchSiswa]);
+  }, []); // <-- kosongkan dependency array
 
   const openCreate = () => {
     setEditingId(null);
@@ -278,9 +291,7 @@ export default function SiswaPage() {
                         <td className="px-5 py-4 font-medium text-slate-900">
                           {item.nama}
                         </td>
-                        <td className="px-5 py-4 text-slate-700">
-                          {item.nis}
-                        </td>
+                        <td className="px-5 py-4 text-slate-700">{item.nis}</td>
                         <td className="px-5 py-4 text-slate-700">
                           {item.kelas?.nama_kelas} - {item.kelas?.tingkat}
                         </td>
@@ -377,9 +388,7 @@ export default function SiswaPage() {
                   placeholder="8 digit angka"
                 />
                 {fieldErrors.nis ? (
-                  <p className="mt-2 text-xs text-red-600">
-                    {fieldErrors.nis}
-                  </p>
+                  <p className="mt-2 text-xs text-red-600">{fieldErrors.nis}</p>
                 ) : (
                   <p className="mt-2 text-xs text-slate-500">
                     NIS wajib angka semua dan tepat 8 digit.
@@ -395,14 +404,9 @@ export default function SiswaPage() {
                   onChange={(e) => setKelasId(e.target.value)}
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                 >
-                  <option value="">
-                    Pilih kelas
-                  </option>
+                  <option value="">Pilih kelas</option>
                   {kelasOptions.map((kelas) => (
-                    <option
-                      key={kelas.id}
-                      value={kelas.id}
-                    >
+                    <option key={kelas.id} value={kelas.id}>
                       {kelas.nama_kelas} - {kelas.tingkat}
                     </option>
                   ))}
