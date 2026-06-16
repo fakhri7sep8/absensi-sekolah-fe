@@ -91,9 +91,12 @@ export default function KepsekPage() {
           return await fetchKelas();
         });
         if (!active) return;
-        setKelasOptions(data);
-        if (data.length > 0) {
-          setKelasId((current) => current || String(data[0].id));
+        const uniqueKelas = Array.from(
+          new Map(data.map((kelas) => [kelas.nama_kelas.trim().toLowerCase(), kelas])).values(),
+        );
+        setKelasOptions(uniqueKelas);
+        if (uniqueKelas.length > 0) {
+          setKelasId((current) => current || String(uniqueKelas[0].id));
         }
       } catch (error) {
         if (active) {
@@ -107,7 +110,7 @@ export default function KepsekPage() {
     return () => {
       active = false;
     };
-  }, [fetchKelas]);
+  }, [fetchKelas, initDefaultKelas]);
 
   useEffect(() => {
     if (!kelasId) return;

@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import api from '@/lib/axios';
 
 export type KelasItem = {
@@ -9,20 +10,20 @@ export type KelasItem = {
 };
 
 export function useKelas() {
-  const fetchKelas = async () => {
+  const fetchKelas = useCallback(async () => {
     const response = await api.get('/kelas');
     return response.data as KelasItem[];
-  };
+  }, []);
 
-  const initDefaultKelas = async () => {
+  const initDefaultKelas = useCallback(async () => {
     const response = await api.get('/kelas/init');
     return response.data as KelasItem[];
-  };
+  }, []);
 
-  const createKelas = async (payload: { nama_kelas: string; tingkat: number }) => {
+  const createKelas = useCallback(async (payload: { nama_kelas: string; tingkat: number }) => {
     const response = await api.post('/kelas', payload);
     return response.data as KelasItem;
-  };
+  }, []);
 
   return { fetchKelas, initDefaultKelas, createKelas };
 }

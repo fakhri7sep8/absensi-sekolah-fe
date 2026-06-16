@@ -49,20 +49,33 @@ export default function DashboardPage() {
   }, [kelasId, kelasOptions]);
 
   const loadKelas = async () => {
-    // Selalu panggil initDefaultKelas untuk membersihkan duplikat & seed jika perlu
-    let data = await initDefaultKelas().catch(async () => {
-      // Fallback: jika init gagal, pakai fetch biasa
-      return await fetchKelas();
-    });
-    if (!data?.length) {
-      data = await fetchKelas();
-    }
-    setKelasOptions(data);
-    if (data.length > 0) {
-      setKelasId(String(data[0].id));
-    }
-    return data;
-  };
+  let data: KelasItem[] = [];
+
+  try {
+    data = await initDefaultKelas();
+  } catch {
+    // silent
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    data = await fetchKelas();
+  }
+
+  // Deduplicate by nama_kelas (case-insensitive)
+  const seen = new Set<string>();
+  const uniqueKelas = data.filter((kelas) => {
+    const key = kelas.nama_kelas.trim().toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  setKelasOptions(uniqueKelas);
+  if (uniqueKelas.length > 0) {
+    setKelasId(String(uniqueKelas[0].id));
+  }
+  return uniqueKelas;
+};
 
   const loadStudents = async (selectedKelasId: string, currentTanggal: string) => {
     const siswaList = await fetchSiswa(Number(selectedKelasId));

@@ -88,9 +88,12 @@ export default function SiswaPage() {
         const kelasList = await initDefaultKelas().catch(async () => {
           return await fetchKelas();
         });
-        setKelasOptions(kelasList);
-        if (kelasList.length > 0) {
-          setKelasId((current) => current || String(kelasList[0].id));
+        const uniqueKelas = Array.from(
+          new Map(kelasList.map((kelas) => [kelas.nama_kelas.trim().toLowerCase(), kelas])).values(),
+        );
+        setKelasOptions(uniqueKelas);
+        if (uniqueKelas.length > 0) {
+          setKelasId((current) => current || String(uniqueKelas[0].id));
         }
       } catch (error) {
         if (!active) return;
