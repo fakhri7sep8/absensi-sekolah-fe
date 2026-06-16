@@ -75,53 +75,63 @@ export default function SiswaPage() {
   const [nis, setNis] = useState("");
   const [kelasId, setKelasId] = useState("");
 
-  useEffect(() => {
-    let active = true;
-    const loadData = async () => {
+ useEffect(() => {
+  let active = true;
+  const loadData = async () => {
+    try {
+      const siswaRes = await fetchSiswa();
+
+      let kelasList: KelasOption[] = [];
       try {
-        // Fetch siswa tanpa filter kelas (semua)
-        const siswaRes = await fetchSiswa();
-        if (!active) return;
-        setItems(siswaRes.map(mapSiswa));
-
-        // Load kelas dengan guard yang proper
-        let kelasList: KelasOption[] = [];
-        try {
-          kelasList = await initDefaultKelas();
-        } catch {
-          // silent
-        }
-        if (!Array.isArray(kelasList) || kelasList.length === 0) {
-          kelasList = await fetchKelas();
-        }
-
-        const seen = new Set<string>();
-        const uniqueKelas = kelasList.filter((kelas) => {
-          const key = kelas.nama_kelas.trim().toLowerCase();
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-
-        if (!active) return;
-        setKelasOptions(uniqueKelas);
-        if (uniqueKelas.length > 0) {
-          setKelasId((current) => current || String(uniqueKelas[0].id));
-        }
-      } catch (error) {
-        if (!active) return;
-        const err = error as AxiosError<{ message?: string }>;
-        if (err.response?.status === 401 && shouldIgnoreUnauthorized()) return;
-        setError(err.response?.data?.message || "Gagal memuat data siswa.");
-      } finally {
-        if (active) setLoading(false);
+        kelasList = await initDefaultKelas();
+      } catch {
+        // silent
       }
-    };
-    void loadData();
-    return () => {
-      active = false;
-    };
-  }, []); // <-- kosongkan dependency array
+      if (!Array.isArray(kelasList) || kelasList.length === 0) {
+        kelasList = await fetchKelas();
+      }
+
+      if (!active) return;
+
+      const seen = new Set<string>();
+      const uniqueKelas = kelasList.filter((kelas) => {
+        const key = kelas.nama_kelas.trim().toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      const kelasMap = new Map(uniqueKelas.map((k) => [k.id, k]));
+
+      setItems(
+        siswaRes.map((siswa: SiswaItem) => {
+          const kelasData = kelasMap.get(siswa.kelas_id);
+          return {
+            id: siswa.id,
+            nama: siswa.nama,
+            nis: siswa.nis,
+            kelas_id: siswa.kelas_id,
+            kelas: siswa.kelas ?? (kelasData
+              ? { nama_kelas: kelasData.nama_kelas, tingkat: kelasData.tingkat }
+              : { nama_kelas: '-', tingkat: 0 }),
+          };
+        }),
+      );
+
+      setKelasOptions(uniqueKelas);
+      setKelasId((current) => current || String(uniqueKelas[0]?.id ?? ''));
+    } catch (error) {
+      if (!active) return;
+      const err = error as AxiosError<{ message?: string }>;
+      if (err.response?.status === 401 && shouldIgnoreUnauthorized()) return;
+      setError(err.response?.data?.message || "Gagal memuat data siswa.");
+    } finally {
+      if (active) setLoading(false);
+    }
+  };
+  void loadData();
+  return () => { active = false; };
+}, []);
 
   const openCreate = () => {
     setEditingId(null);
